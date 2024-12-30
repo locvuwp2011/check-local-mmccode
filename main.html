@@ -45,8 +45,7 @@
 						
 					  matches.forEach(match => {
 						// Extract the text within the parentheses
-						const extractedText = match.replace(/updateSelectedBrand\(/, '').replace(/\)/, '');
-						console.log(extractedText); 
+						const extractedText = match.replace(/updateSelectedBrand\(/, '').replace(/\)/, '');						
 						var jsonText = $('<div>').append(extractedText).html();
 						var jObject = JSON.parse(jsonText);
 						
