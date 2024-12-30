@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Extractor</title>
+    <link rel="stylesheet" type="text/css"  href="./bootstrap.min.css" />
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Data Extractor</h1>
+        <p>Enter your query and click submit to extract data from the website.</p>
+        <div class="input-group mb-3">
+            <input type="text" id="queryInput" class="form-control" placeholder="Enter your query">
+            <button id="submitButton" class="btn btn-primary">Submit</button>
+        </div>
+        <div id="resultContainer"></div>
+    </div>
+
+    <script src="jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+			$("#queryInput").on("keypress", function(event) {
+				if (event.key === "Enter") {
+				  $("#submitButton").click();
+				}
+			  });
+  
+            $("#submitButton").click(function() {
+                var query = $("#queryInput").val();
+                var url = "https://quanlythe.com/tien-ich/tra-cuu-mcc?query=" + encodeURIComponent(query);
+
+                $.get(url, function(data) {
+                    var rows = $(data).find("tr");
+                    $("#resultContainer").html("<h2>Extracted Rows:</h2>");
+                    $("#resultContainer").append(rows);
+					
+					var htmlData =  $("#resultContainer").html();										
+					const regex = /updateSelectedBrand\((.*?)\)/g;
+					const matches = htmlData.match(regex);
+
+					if (matches) {
+						$("#resultContainer").html('');
+					
+						
+					  matches.forEach(match => {
+						// Extract the text within the parentheses
+						const extractedText = match.replace(/updateSelectedBrand\(/, '').replace(/\)/, '');
+						console.log(extractedText); 
+						var jsonText = $('<div>').append(extractedText).html();
+						var jObject = JSON.parse(jsonText);
+						
+						const cardHtml = `
+						<div class="col">
+							<div class="card">
+								<div class="card-body">
+									<h5 class="card-title">${jObject.name}</h5>
+									<p class="card-text">Code: ${jObject.mcc_code }</p>
+									<p class="card-text">${jObject. mcc_desc}</p>
+								</div>
+							</div>
+						</div>
+					`;
+					
+						$("#resultContainer").append(cardHtml);
+					  });
+					} else {
+					  console.log("No matches found.");
+					}
+                });
+            });
+        });
+    </script>
+</body>
+</html>
