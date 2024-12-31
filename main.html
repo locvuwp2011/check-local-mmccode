@@ -1,74 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Extractor</title>
-    <link rel="stylesheet" type="text/css"  href="./bootstrap.min.css" />
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Data Extractor</title>
+	<link rel="stylesheet" type="text/css" href="./bootstrap.min.css" />
+	<style>
+		.break-spaces {
+			white-space: break-spaces;
+		}
+	</style>
 </head>
+
 <body>
-    <div class="container mt-5">
-        <h1>Data Extractor</h1>
-        <p>Enter your query and click submit to extract data from the website.</p>
-        <div class="input-group mb-3">
-            <input type="text" id="queryInput" class="form-control" placeholder="Enter your query">
-            <button id="submitButton" class="btn btn-primary">Submit</button>
-        </div>
-        <div id="resultContainer"></div>
-    </div>
+	<div class="container mt-5">
+		<h1>Data Extractor</h1>
+		<p>Enter your query and click submit to extract data from the website.</p>
+		<div class="input-group mb-3">
+			<input type="text" id="queryInput" class="form-control" placeholder="Enter your query">
+			<button id="submitButton" class="btn btn-primary">Submit</button>
+		</div>
+		<div id="resultContainer"></div>
+	</div>
 
-    <script src="jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function() {
-			$("#queryInput").on("keypress", function(event) {
-				if (event.key === "Enter") {
-				  $("#submitButton").click();
+	<button id="backToTop" class="btn btn-primary" style="position: fixed; bottom: 20px; right: 20px; display: none;">
+		↑ Top
+	</button>
+
+	<script src="jquery-3.6.0.min.js"></script>
+	<script>
+		$(document).ready(function () {
+			$(window).scroll(function () {
+				if ($(this).scrollTop() > 100) { // Show after scrolling down 100px
+					$('#backToTop').fadeIn();
+				} else {
+					$('#backToTop').fadeOut();
 				}
-			  });
-  
-            $("#submitButton").click(function() {
-                var query = $("#queryInput").val();
-                var url = "https://quanlythe.com/tien-ich/tra-cuu-mcc?query=" + encodeURIComponent(query);
+			});
 
-                $.get(url, function(data) {
-                    var rows = $(data).find("tr");
-                    $("#resultContainer").html("<h2>Extracted Rows:</h2>");
-                    $("#resultContainer").append(rows);
-					
-					var htmlData =  $("#resultContainer").html();										
-					const regex = /updateSelectedBrand\((.*?)\)/g;
-					const matches = htmlData.match(regex);
+			// Scroll to the top when the button is clicked
+			$('#backToTop').click(function () {
+				$('html, body').animate({ scrollTop: 0 }, 'fast'); // Adjust 'fast' to your desired speed
+				return false;
+			});
 
-					if (matches) {
-						$("#resultContainer").html('');
-					
-						
-					  matches.forEach(match => {
-						// Extract the text within the parentheses
-						const extractedText = match.replace(/updateSelectedBrand\(/, '').replace(/\)/, '');						
-						var jsonText = $('<div>').append(extractedText).html();
-						var jObject = JSON.parse(jsonText);
-						
-						const cardHtml = `
+			$("#queryInput").on("keypress", function (event) {
+				if (event.key === "Enter") {
+					$("#submitButton").click();
+				}
+			});
+
+			$("#submitButton").click(function () {
+				var query = $("#queryInput").val();
+				var url = "https://quanlythe.com/tien-ich/tra-cuu-mcc?query=" + encodeURIComponent(query);
+
+				$.ajax({
+					url: url,
+					type: 'GET',
+					success: function (data) {
+						var rows = $(data).find("tr");
+						$("#resultContainer").html("<h2>Extracted Rows:</h2>");
+						$("#resultContainer").append(rows);
+
+						var htmlData = $("#resultContainer").html();
+						const regex = /updateSelectedBrand\((.*?)\)/g;
+						const matches = htmlData.match(regex);
+
+						if (matches) {
+							$("#resultContainer").html('');
+
+							matches.forEach(match => {
+								// Extract the text within the parentheses
+								const extractedText = match.replace(/updateSelectedBrand\(/, '').replace(/\)/, '');
+								var jsonText = $('<div>').append(extractedText).html();
+								var jObject = JSON.parse(jsonText);
+
+								const cardHtml = `
+								<div class="col">
+									<div class="card">
+										<div class="card-body">
+											<h5 class="card-title">${jObject.name}</h5>
+											<p class="card-text">Code: ${jObject.mcc_code}</p>
+											<p class="card-text">${jObject.mcc_desc}</p>
+										</div>
+									</div>
+								</div>
+							`;
+
+								$("#resultContainer").append(cardHtml);
+							});
+						} else {
+							handleCardPromotion(data);
+						}
+					},
+					error: function (jqXHR, textStatus, errorThrown) {
+						console.log('Error:', textStatus, errorThrown);
+					}
+				});
+			});
+		});
+
+
+		function handleCardPromotion(data) {
+			// card promotion
+			var rows = $(data).find("li");
+
+			$("#resultContainer").html("<h2>Extracted Rows:</h2>");
+
+			const regexCard = /updateSelectedCardPromotion\((\{.*?\})\)/gs;
+
+			for (var i = 0; i <= rows.length - 1; i++) {
+				var htmlData = rows[i].outerHTML;
+				const matchesCard = htmlData.match(regexCard);
+				if (matchesCard) {
+					const extractedText = matchesCard[0].replace(/updateSelectedCardPromotion\(/, '').replace(/\)/, '');
+
+					var jsonText = $('<div>').append(extractedText).html();
+					if (jsonText[jsonText.length - 1] == ')') {
+						jsonText = jsonText.substring(0, jsonText.length - 1);
+					}
+
+					var jObject = JSON.parse(jsonText);
+					var spans = $(htmlData).find('span');
+
+					const cardHtml = `
 						<div class="col">
 							<div class="card">
 								<div class="card-body">
-									<h5 class="card-title">${jObject.name}</h5>
-									<p class="card-text">Code: ${jObject.mcc_code }</p>
-									<p class="card-text">${jObject. mcc_desc}</p>
+									<h5 class="card-title">${spans[0].innerText}</h5>
+									<p class="card-text">${spans[1].innerText} ${spans[2].innerText}</p>
+									<p class="card-text">Kênh thanh toán: ${jObject.transaction_channels_display}</p>
+									<p class="card-text break-spaces">Yêu cầu : ${jObject.required_display}</p>
+									<p class="card-text">Tỉ lệ hoàn : ${jObject.cashback_rate_display}</p>
+									<p class="card-text">Hoàn tối đa (mỗi kỳ sao kê) : ${jObject.cashback_cap_display}</p>													
+									<p class="card-text">Chi tiết : <a href='${jObject.refs}'>Link</a></p>
 								</div>
 							</div>
 						</div>
 					`;
-					
-						$("#resultContainer").append(cardHtml);
-					  });
-					} else {
-					  console.log("No matches found.");
-					}
-                });
-            });
-        });
-    </script>
+					$("#resultContainer").append(cardHtml);
+				}
+			}
+		}
+	</script>
 </body>
+
 </html>
